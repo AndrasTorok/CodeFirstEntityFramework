@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Data.Common;
@@ -37,6 +38,36 @@ namespace CodeFirstEntityFramework.Repository
         public virtual IEnumerable<TModel> GetAll()
         {
             return dataContext.Set<TEntity>().ToList().Select(e => ModelFromEntity(e)).ToList();
+        }
+
+        public virtual TModel GetById(params object[] primaryKeys)
+        {
+            TModel model = default(TModel);
+
+            DbProviderFactory factory = DbProviderFactories.GetFactory(connStringSettings.ProviderName);
+            using (DbConnection connection = factory.CreateConnection())
+            {
+                connection.ConnectionString = connStringSettings.ConnectionString;
+                using (DbCommand command = factory.CreateCommand())
+                {
+                    string filterParametersText = FilteringParameters(factory, command, primaryKeys);
+
+                    command.Connection = connection;
+                    command.CommandText = String.Format("select {0} from {1} where {2};", ColumnNamesForSelect(), TableName, filterParametersText);
+
+                    connection.Open();
+                    using (DbDataReader reader = command.ExecuteReader())
+                    {
+                        if (reader.HasRows)
+                        {
+                            reader.Read();                                      //we read ony the first row
+                            model = GetModelFromReader(reader);
+                        }
+                    }
+                }
+            }
+
+            return model;
         }
 
         public virtual bool Update(TModel model)
@@ -172,6 +203,18 @@ namespace CodeFirstEntityFramework.Repository
             return sb.ToString();
         }
 
+        private string ColumnNamesForSelect()
+        {
+            StringBuilder sb = new StringBuilder();
+
+            for (var i = 0; i < columns.Count; i++)
+            {
+                sb.AppendFormat("{0}{1}", i > 0 ? ", " : "", columns[i]);
+            }
+
+            return sb.ToString();
+        }
+
         private string ColumnNamesForInsert()
         {
             StringBuilder sb = new StringBuilder();
@@ -181,12 +224,12 @@ namespace CodeFirstEntityFramework.Repository
                 sb.AppendFormat("{0}{1}", i > 0 ? ", " : "", insertColumns[i]);
             }
 
-                return sb.ToString();
+            return sb.ToString();
         }
 
         #endregion
 
-        #region Reflection
+        #region Helpers
 
         private object GetValue(TModel model, string key)
         {
@@ -194,6 +237,20 @@ namespace CodeFirstEntityFramework.Repository
             object value = type.GetProperty(key).GetValue(model, null);
 
             return value;
+        }
+
+        private TModel GetModelFromReader(DbDataReader reader)
+        {
+            Dictionary<string, object> dict = new Dictionary<string, object>();
+            for (int index = 0; index < columns.Count; index++)
+            {
+                dict.Add(columns[index], reader.GetValue(index));
+            }
+
+            string json = JsonConvert.SerializeObject(dict);
+            TModel model = JsonConvert.DeserializeObject<TModel>(json);
+
+            return model;
         }
 
         #endregion

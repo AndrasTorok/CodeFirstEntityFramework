@@ -8,3 +8,5 @@ C:\Users\Andras\documents\visual studio 2013\Projects\Learning\CodeFirstEntityFr
 C:\Users\Andras\documents\visual studio 2013\Projects\Learning\CodeFirstEntityFramework\obj\Debug\CodeFirstEntityFramework.csprojResolveAssemblyReference.cache
 C:\Users\Andras\documents\visual studio 2013\Projects\Learning\CodeFirstEntityFramework\obj\Debug\CodeFirstEntityFramework.exe
 C:\Users\Andras\documents\visual studio 2013\Projects\Learning\CodeFirstEntityFramework\obj\Debug\CodeFirstEntityFramework.pdb
+C:\Users\Andras\Documents\Visual Studio 2013\Projects\Learning\CodeFirstEntityFramework\bin\Debug\Newtonsoft.Json.dll
+C:\Users\Andras\Documents\Visual Studio 2013\Projects\Learning\CodeFirstEntityFramework\bin\Debug\Newtonsoft.Json.xml
