@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace CodeFirstEntityFramework.Repository
 {
-    public abstract class PkLessRepository<TEntity, TModel>
+    public abstract class PkLessRepositoryAsync<TEntity, TModel>
         where TEntity : class, new()
         where TModel : class, new()
     {
@@ -23,7 +23,7 @@ namespace CodeFirstEntityFramework.Repository
         private readonly List<string> insertColumns;
         private Dictionary<string, string> cols;
 
-        public PkLessRepository(ConnectionStringSettings connStringSettings, string[] keyColumns, string[] identityColumns = null)
+        public PkLessRepositoryAsync(ConnectionStringSettings connStringSettings, string[] keyColumns, string[] identityColumns = null)
         {
             this.connStringSettings = connStringSettings;
             this.dataContext = new EFContext();
@@ -43,7 +43,7 @@ namespace CodeFirstEntityFramework.Repository
             return dataContext.Set<TEntity>().ToList().Select(e => ModelFromEntity(e)).ToList();
         }
 
-        public virtual TModel GetById(params object[] primaryKeys)
+        public virtual async Task<TModel> GetById(params object[] primaryKeys)
         {
             TModel model = default(TModel);
 
@@ -57,12 +57,12 @@ namespace CodeFirstEntityFramework.Repository
                     command.CommandText = String.Format("select {0} from {1} where {2};", ColumnNames(columns), TableName,
                         FilteringParameters(factory, command, primaryKeys));
 
-                    connection.Open();
-                    using (DbDataReader reader = command.ExecuteReader())
+                    await connection.OpenAsync();
+                    using (DbDataReader reader = await command.ExecuteReaderAsync())
                     {
                         if (reader.HasRows)
                         {
-                            reader.Read();                                      //we read ony the first row
+                            await reader.ReadAsync();                                      //we read ony the first row
                             model = GetModelFromReader(reader);
                         }
                     }
@@ -72,7 +72,7 @@ namespace CodeFirstEntityFramework.Repository
             return model;
         }
 
-        public virtual bool Update(TModel model)
+        public virtual async Task<bool> Update(TModel model)
         {
             bool status = false;
 
@@ -86,8 +86,8 @@ namespace CodeFirstEntityFramework.Repository
                     command.CommandText = String.Format("update {0} set {1} where {2};", TableName,
                         UpdateParameters(factory, command, model), FilteringParameters(factory, command, model));
 
-                    connection.Open();
-                    int count = command.ExecuteNonQuery();
+                    await connection.OpenAsync();
+                    int count = await command.ExecuteNonQueryAsync();
                     status = count > 0;
                 }
             }
@@ -95,7 +95,7 @@ namespace CodeFirstEntityFramework.Repository
             return status;
         }
 
-        public virtual bool Save(TModel model)
+        public virtual async Task<bool> Save(TModel model)
         {
             bool status = false;
 
@@ -109,8 +109,8 @@ namespace CodeFirstEntityFramework.Repository
                     command.CommandText = String.Format("insert into {0} ({1}) values({2});", TableName,
                         ColumnNames(insertColumns), InsertParameters(factory, command, model));
 
-                    connection.Open();
-                    int count = command.ExecuteNonQuery();
+                    await connection.OpenAsync();
+                    int count = await command.ExecuteNonQueryAsync();
                     status = count > 0;
                 }
             }
@@ -118,7 +118,7 @@ namespace CodeFirstEntityFramework.Repository
             return status;
         }
 
-        public virtual bool Delete(object[] primaryKeyValues)
+        public virtual async Task<bool> Delete(object[] primaryKeyValues)
         {
             bool status = false;
 
@@ -132,8 +132,8 @@ namespace CodeFirstEntityFramework.Repository
                     command.CommandText = String.Format("delete {0} where {1};", TableName,
                         FilteringParameters(factory, command, primaryKeyValues));
 
-                    connection.Open();
-                    int count = command.ExecuteNonQuery();
+                    await connection.OpenAsync();
+                    int count = await command.ExecuteNonQueryAsync();
                     status = count > 0;
                 }
             }

@@ -63,10 +63,13 @@
     <Compile Include="Abstract\IUnitOfWork.cs" />
     <Compile Include="Model\Company.cs" />
     <Compile Include="Model\Person.cs" />
+    <Compile Include="Model\PersonModel.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Repository\ColumnNameMappingAttribute.cs" />
     <Compile Include="Repository\PersonRepository.cs" />
     <Compile Include="Repository\PkLessRepository.cs" />
+    <Compile Include="Repository\PkLessRepositoryAsync.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
