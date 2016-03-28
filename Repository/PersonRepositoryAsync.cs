@@ -8,9 +8,9 @@ using System.Threading.Tasks;
 
 namespace CodeFirstEntityFramework.Repository
 {
-    public class PersonRepository : PkLessRepository<Person, Person>
+    public class PersonRepositoryAsync : PkLessRepositoryAsync<Person, Person>
     {
-        public PersonRepository(ConnectionStringSettings connStringSettings)
+        public PersonRepositoryAsync(ConnectionStringSettings connStringSettings)
             : base(connStringSettings, new string[] { "PersonId" }, new string[] { "PersonId" })
         {
 
