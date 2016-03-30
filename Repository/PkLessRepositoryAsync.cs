@@ -21,12 +21,30 @@ namespace CodeFirstEntityFramework.Repository
 
         }
 
+        public virtual async Task<List<TModel>> GetAll(params KeyValuePair<string, object>[] filterKpvs)
+        {
+            return await ExecuteQueryAsync<List<TModel>>((command) =>
+            {
+                return String.Format("select {0} from {1};", ColumnNames(columns), TableName);
+            }, async (reader) =>
+            {
+                List<TModel> result = new List<TModel>();
+
+                while (reader.HasRows && await reader.ReadAsync())
+                {
+                    result.Add(GetModelFromReader(reader));
+                }
+
+                return result;
+            });
+        }
+
         public virtual async Task<TModel> GetById(params object[] primaryKeys)
         {
-            return await ExecuteQueryAsync<TModel>(() =>
+            return await ExecuteQueryAsync<TModel>((command) =>
             {
                 return String.Format("select {0} from {1} where {2};", ColumnNames(columns),
-                    TableName, FilteringParameters(primaryKeys));
+                    TableName, FilteringParameters(command, primaryKeys));
             }, async (reader) =>
             {
                 TModel model = default(TModel);
@@ -43,10 +61,10 @@ namespace CodeFirstEntityFramework.Repository
 
         public virtual async Task<bool> Update(TModel model)
         {
-            return await ExecuteNonQueryAsync(() =>
+            return await ExecuteNonQueryAsync((command) =>
             {
                 string commandText = String.Format("update {0} set {1} where {2};", TableName,
-                    UpdateParameters(model), FilteringParameters(model));
+                    UpdateParameters(command, model), FilteringParameters(command, model));
 
                 return commandText;
             });
@@ -54,10 +72,10 @@ namespace CodeFirstEntityFramework.Repository
 
         public virtual async Task<bool> Save(TModel model)
         {
-            return await ExecuteNonQueryAsync(() =>
+            return await ExecuteNonQueryAsync((command) =>
             {
                 string commandText = String.Format("insert into {0} ({1}) values({2});", TableName,
-                        ColumnNames(insertColumns), InsertParameters(model));
+                        ColumnNames(insertColumns), InsertParameters(command, model));
 
                 return commandText;
             });
@@ -65,10 +83,10 @@ namespace CodeFirstEntityFramework.Repository
 
         public virtual async Task<bool> Delete(object[] primaryKeyValues)
         {
-            return await ExecuteNonQueryAsync(() =>
+            return await ExecuteNonQueryAsync((command) =>
             {
                 string commandText = String.Format("delete {0} where {1};", TableName,
-                        FilteringParameters(primaryKeyValues));
+                        FilteringParameters(command, primaryKeyValues));
 
                 return commandText;
             });

@@ -20,13 +20,31 @@ namespace CodeFirstEntityFramework.Repository
         {
 
         }
+
+        public virtual List<TModel> GetAll(params KeyValuePair<string, object>[] filterKpvs)
+        {
+            return ExecuteQuery<List<TModel>>((command) =>
+            {
+                return String.Format("select {0} from {1};", ColumnNames(columns), TableName);
+            }, (reader) =>
+            {
+                List<TModel> result = new List<TModel>();
+
+                while (reader.HasRows && reader.Read())
+                {
+                    result.Add(GetModelFromReader(reader));
+                }
+
+                return result;
+            });
+        }
         
         public virtual TModel GetById(params object[] primaryKeys)
         {
-            return ExecuteQuery<TModel>(() =>
+            return ExecuteQuery<TModel>((command) =>
             {
                 return String.Format("select {0} from {1} where {2};", ColumnNames(columns),
-                    TableName, FilteringParameters(primaryKeys));
+                    TableName, FilteringParameters(command, primaryKeys));
             }, (reader) =>
             {
                 TModel model = default(TModel);
@@ -43,10 +61,10 @@ namespace CodeFirstEntityFramework.Repository
 
         public virtual bool Update(TModel model)
         {
-            return ExecuteNonQuery(() =>
+            return ExecuteNonQuery((command) =>
             {
                 string commandText = String.Format("update {0} set {1} where {2};", TableName,
-                    UpdateParameters(model), FilteringParameters(model));
+                    UpdateParameters(command, model), FilteringParameters(command, model));
 
                 return commandText;
             });
@@ -54,10 +72,10 @@ namespace CodeFirstEntityFramework.Repository
 
         public virtual bool Save(TModel model)
         {
-            return ExecuteNonQuery(() =>
+            return ExecuteNonQuery((command) =>
             {
                 string commandText = String.Format("insert into {0} ({1}) values({2});", TableName,
-                        ColumnNames(insertColumns), InsertParameters(model));
+                        ColumnNames(insertColumns), InsertParameters(command, model));
 
                 return commandText;
             });
@@ -65,10 +83,10 @@ namespace CodeFirstEntityFramework.Repository
 
         public virtual bool Delete(object[] primaryKeyValues)
         {
-            return ExecuteNonQuery(() =>
+            return ExecuteNonQuery((command) =>
             {
                 string commandText = String.Format("delete {0} where {1};", TableName,
-                        FilteringParameters(primaryKeyValues));
+                        FilteringParameters(command,primaryKeyValues));
 
                 return commandText;
             });            

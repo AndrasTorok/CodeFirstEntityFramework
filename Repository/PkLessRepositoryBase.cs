@@ -15,6 +15,8 @@ namespace CodeFirstEntityFramework.Repository
         where TEntity : class, new()
         where TModel : class, new()
     {
+        private const string cMultipleActiveResultSets = "MultipleActiveResultSets";
+        private const string cSqlServerProvider = "System.Data.SqlClient";
         protected readonly DbContext dataContext;
         protected readonly DbProviderFactory factory;
         protected readonly ConnectionStringSettings connStringSettings;
@@ -23,24 +25,28 @@ namespace CodeFirstEntityFramework.Repository
         protected readonly List<string> columns;
         protected readonly List<string> insertColumns;
         protected Dictionary<string, string> cols;
-        protected DbCommand command;
 
         public PkLessRepositoryBase(ConnectionStringSettings connStringSettings, string[] keyColumns, string[] identityColumns = null)
         {
             this.connStringSettings = connStringSettings;
+            if (connStringSettings.ProviderName == cSqlServerProvider && false)
+            {
+                DbConnectionStringBuilder builder = new DbConnectionStringBuilder();
+                builder.ConnectionString = connStringSettings.ConnectionString;
+                if (!builder.ContainsKey(cMultipleActiveResultSets))
+                {
+                    builder.Add(cMultipleActiveResultSets, true);
+                    this.connStringSettings.ConnectionString = builder.ToString();
+                }
+            }
             this.factory = DbProviderFactories.GetFactory(connStringSettings.ProviderName);
             this.dataContext = new EFContext();
             this.keyColumns = keyColumns.ToList();
             this.valueColumns = typeof(TEntity).GetProperties().Select(m => m.Name).Except(this.keyColumns).ToList();
             this.columns = this.keyColumns.Union(this.valueColumns).ToList();
             this.insertColumns = this.columns.Except(identityColumns != null ? identityColumns : new string[0]).ToList();
-            FillColumnMapping();
-        }
-
-        public virtual IEnumerable<TModel> GetAll()
-        {
-            return dataContext.Set<TEntity>().ToList().Select(e => ModelFromEntity(e)).ToList();
-        }  
+            FillColumnMapping();            
+        }         
 
         protected abstract TModel ModelFromEntity(TEntity entity);
         protected abstract TEntity EntityFromModel(TModel model);
@@ -48,15 +54,15 @@ namespace CodeFirstEntityFramework.Repository
 
         #region Execute Query
 
-        protected TReturn ExecuteQuery<TReturn>(Func<string> commandFct, Func<DbDataReader, TReturn> fct)
+        protected TReturn ExecuteQuery<TReturn>(Func<DbCommand, string> commandFct, Func<DbDataReader, TReturn> fct)
         {
             using (DbConnection connection = factory.CreateConnection())
             {
                 connection.ConnectionString = connStringSettings.ConnectionString;
-                using (command = factory.CreateCommand())
+                using (DbCommand command = factory.CreateCommand())
                 {
                     command.Connection = connection;
-                    command.CommandText = commandFct();
+                    command.CommandText = commandFct(command);
 
                     connection.Open();
                     using (DbDataReader reader = command.ExecuteReader())
@@ -67,15 +73,15 @@ namespace CodeFirstEntityFramework.Repository
             }
         }
 
-        protected async Task<TReturn> ExecuteQueryAsync<TReturn>(Func<string> commandFct, Func<DbDataReader, Task<TReturn>> fct)
+        protected async Task<TReturn> ExecuteQueryAsync<TReturn>(Func<DbCommand, string> commandFct, Func<DbDataReader, Task<TReturn>> fct)
         {
             using (DbConnection connection = factory.CreateConnection())
             {
                 connection.ConnectionString = connStringSettings.ConnectionString;
-                using (command = factory.CreateCommand())
+                using (DbCommand command = factory.CreateCommand())
                 {
                     command.Connection = connection;
-                    command.CommandText = commandFct();
+                    command.CommandText = commandFct(command);
 
                     await connection.OpenAsync();
                     using (DbDataReader reader = await command.ExecuteReaderAsync())
@@ -90,15 +96,15 @@ namespace CodeFirstEntityFramework.Repository
 
         #region Execute Non Query
 
-        protected bool ExecuteNonQuery(Func<string> commandFct)
+        protected bool ExecuteNonQuery(Func<DbCommand,string> commandFct)
         {
             using (DbConnection connection = factory.CreateConnection())
             {
                 connection.ConnectionString = connStringSettings.ConnectionString;
-                using (command = factory.CreateCommand())
+                using (DbCommand command = factory.CreateCommand())
                 {
                     command.Connection = connection;
-                    command.CommandText = commandFct();
+                    command.CommandText = commandFct(command);
 
                     connection.Open();
                     int count = command.ExecuteNonQuery();
@@ -109,15 +115,15 @@ namespace CodeFirstEntityFramework.Repository
             }
         }
 
-        protected async Task<bool> ExecuteNonQueryAsync(Func<string> commandFct)
+        protected async Task<bool> ExecuteNonQueryAsync(Func<DbCommand, string> commandFct)
         {
             using (DbConnection connection = factory.CreateConnection())
             {
                 connection.ConnectionString = connStringSettings.ConnectionString;
-                using (command = factory.CreateCommand())
+                using (DbCommand command = factory.CreateCommand())
                 {
                     command.Connection = connection;
-                    command.CommandText = commandFct();
+                    command.CommandText = commandFct(command);
 
                     await connection.OpenAsync();
                     int count = await command.ExecuteNonQueryAsync();
@@ -132,39 +138,39 @@ namespace CodeFirstEntityFramework.Repository
 
         #region Parameters
 
-        protected string FilteringParameters(TModel model)
+        protected string FilteringParameters(DbCommand command, TModel model)
         {
             object[] primaryKeyValues = this.keyColumns.Select(key => GetValue(model, key)).ToArray();
-            return FilteringParameters(primaryKeyValues);
+            return FilteringParameters(command, primaryKeyValues);
         }
 
-        protected string FilteringParameters(object[] primaryKeyValues)
+        protected string FilteringParameters(DbCommand command, object[] primaryKeyValues)
         {
             if (this.keyColumns.Count() != primaryKeyValues.Count()) throw new ApplicationException("Mismatch in PK");            
 
-            return Parameters(null, keyColumns, "key", (index, key, paramName) =>
+            return Parameters(command, null, keyColumns, "key", (index, key, paramName) =>
             {
                 return String.Format("{0}{1} = {2}", index > 0 ? " and " : "", key, paramName);
             }, primaryKeyValues);
         }
 
-        protected string UpdateParameters(TModel model)
+        protected string UpdateParameters(DbCommand command, TModel model)
         {
-            return Parameters(model, insertColumns, "param", (index, key, paramName) =>
+            return Parameters(command, model, insertColumns, "param", (index, key, paramName) =>
             {
                 return String.Format("{0}{1} = {2}", index > 0 ? ", " : "", key, paramName);
             });
         }
 
-        protected string InsertParameters(TModel model)
+        protected string InsertParameters(DbCommand command,TModel model)
         {            
-            return Parameters(model, insertColumns, "param", (index, key, paramName) =>
+            return Parameters(command, model, insertColumns, "param", (index, key, paramName) =>
             {
                 return String.Format("{0}{1}", index > 0 ? ", " : "", paramName);
             });
         }
 
-        private string Parameters(TModel model, List<string> columns, string paramName, 
+        private string Parameters(DbCommand command, TModel model, List<string> columns, string paramName, 
             Func<int, string, string, string> paramFormat, object[] values = null)
         {
             if (model == default(TModel) && values == null) throw new ApplicationException("Parameters error: either model or values should be provided");
