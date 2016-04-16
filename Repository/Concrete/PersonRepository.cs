@@ -8,22 +8,12 @@ using System.Threading.Tasks;
 
 namespace CodeFirstEntityFramework.Repository
 {
-    public class PersonRepositoryAsync : PkLessRepositoryAsync<Person, Person>
+    public class PersonRepository : PkLessRepository<Person>
     {
-        public PersonRepositoryAsync(ConnectionStringSettings connStringSettings)
+        public PersonRepository(ConnectionStringSettings connStringSettings)
             : base(connStringSettings, new string[] { "PersonId" }, new string[] { "PersonId" })
         {
 
-        }
-
-        protected override Person ModelFromEntity(Person entity)
-        {
-            return entity.Clone() as Person;
-        }
-
-        protected override Person EntityFromModel(Person model)
-        {
-            return model.Clone() as Person;
         }
 
         protected override string TableName

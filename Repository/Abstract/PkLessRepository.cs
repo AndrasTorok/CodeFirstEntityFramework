@@ -11,9 +11,8 @@ using System.Threading.Tasks;
 
 namespace CodeFirstEntityFramework.Repository
 {
-    public abstract class PkLessRepository<TEntity, TModel> : PkLessRepositoryBase<TEntity, TModel>
-        where TEntity : class, new()
-        where TModel : class, new()
+    public abstract class PkLessRepository<TModel> : PkLessRepositoryBase<TModel>
+        where TModel : class,ICloneable, new()
     {
         public PkLessRepository(ConnectionStringSettings connStringSettings, string[] keyColumns, string[] identityColumns = null) :
             base(connStringSettings, keyColumns, identityColumns)
@@ -90,6 +89,19 @@ namespace CodeFirstEntityFramework.Repository
 
                 return commandText;
             });            
+        }
+
+        public virtual bool Overwrite(IEnumerable<TModel> models)
+        {
+            bool status = true;
+
+            EntityChanges<TModel> changes = entities.EntityChanges(models, GetAll());
+
+            changes.Added.ForEach(ent => { Save(ent); });
+            changes.Deleted.ForEach(ent => { Delete(PKs(ent)); });
+            changes.Updated.ForEach(ent => { Update(ent); });
+
+            return status;
         }
     }
 }

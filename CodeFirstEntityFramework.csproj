@@ -61,17 +61,25 @@
     <Compile Include="Context\Initializer.cs" />
     <Compile Include="Abstract\IGenericRepository.cs" />
     <Compile Include="Abstract\IUnitOfWork.cs" />
+    <Compile Include="Model\Address.cs" />
     <Compile Include="Model\Company.cs" />
+    <Compile Include="Model\Misecllaneous.cs" />
     <Compile Include="Model\Person.cs" />
     <Compile Include="Model\PersonModel.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Repository\ColumnNameMappingAttribute.cs" />
-    <Compile Include="Repository\PersonRepositoryAsync.cs" />
-    <Compile Include="Repository\PersonRepository.cs" />
-    <Compile Include="Repository\PkLessRepositoryAsync.cs" />
-    <Compile Include="Repository\PkLessRepositoryBase.cs" />
-    <Compile Include="Repository\PkLessRepository.cs" />
+    <Compile Include="Repository\Abstract\RepositoryBase.cs" />
+    <Compile Include="Repository\Abstract\SingleLineRepository.cs" />
+    <Compile Include="Repository\Concrete\AddressRepository.cs" />
+    <Compile Include="Repository\Abstract\ColumnNameMappingAttribute.cs" />
+    <Compile Include="Repository\Abstract\Entities.cs" />
+    <Compile Include="Repository\Abstract\EntityChanges.cs" />
+    <Compile Include="Repository\Concrete\MisecllaneousRepository.cs" />
+    <Compile Include="Repository\Concrete\PersonRepositoryAsync.cs" />
+    <Compile Include="Repository\Concrete\PersonRepository.cs" />
+    <Compile Include="Repository\Abstract\PkLessRepositoryAsync.cs" />
+    <Compile Include="Repository\Abstract\PkLessRepositoryBase.cs" />
+    <Compile Include="Repository\Abstract\PkLessRepository.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
